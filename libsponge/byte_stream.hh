@@ -5,6 +5,7 @@
 #include <cstdint>
 #include <deque>
 #include <list>
+#include <queue>
 #include <string>
 #include <utility>
 
@@ -17,8 +18,12 @@ class ByteStream
 {
 private:
     // Your code here -- add private members as necessary.
-
-    bool _error{};   //!< Flag indicating that the stream suffered an error.
+    size_t m_capacity;
+    std::deque<char> m_deque;
+    bool m_error{};       //!< Flag indicating that the stream suffered an error.
+    bool m_if_end;        // the flag indicating that if the stream input has ended
+    size_t m_num_read;    // the number of total read
+    size_t m_num_write;   // the number of total write
 
 public:
     //! Construct a stream with room for `capacity` bytes.
@@ -42,7 +47,7 @@ public:
     void
     set_error()
     {
-        _error = true;
+        m_error = true;
     }
     //!@}
 
@@ -73,7 +78,7 @@ public:
     bool
     error() const
     {
-        return _error;
+        return m_error;
     }
 
     //! \returns the maximum amount that can currently be read from the stream

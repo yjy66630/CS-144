@@ -1,6 +1,6 @@
 #include "byte_stream_test_harness.hh"
 
-#include <memory>
+#include <iostream>
 #include <sstream>
 
 using namespace std;

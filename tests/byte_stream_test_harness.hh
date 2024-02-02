@@ -2,14 +2,11 @@
 #define SPONGE_BYTE_STREAM_HARNESS_HH
 
 #include "byte_stream.hh"
-#include "util.hh"
 
-#include <exception>
-#include <initializer_list>
-#include <iostream>
-#include <memory>
 #include <optional>
+#include <stdexcept>
 #include <string>
+#include <vector>
 
 struct ByteStreamTestStep
 {

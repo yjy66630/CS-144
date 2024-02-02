@@ -22,6 +22,19 @@ get_URL(const string& host, const string& path)
     // Then you'll need to print out everything the server sends back,
     // (not just one call to read() -- everything) until you reach
     // the "eof" (end of file).
+    TCPSocket socket;
+    Address address(host, "http");
+    socket.connect(address);
+    string request = "GET " + path + " HTTP/1.1\r\nHost: " + host + "\r\n\r\n";
+    socket.write(request);
+    while (!socket.eof()) {
+        string rawContent = socket.read();
+        rawContent.erase(0, rawContent.find("\r\n\r\n") + 4);
+        cout << rawContent;
+        socket.shutdown(SHUT_RDWR);
+        break;
+    }
+    return;
 }
 
 int

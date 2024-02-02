@@ -1,4 +1,6 @@
 #include "byte_stream.hh"
+#include <cstddef>
+#include <string>
 
 // Dummy implementation of a flow-controlled in-memory byte stream.
 
@@ -7,84 +9,93 @@
 
 // You will need to add private members to the class declaration in `byte_stream.hh`
 
-template<typename... Targs>
-void
-DUMMY_CODE(Targs&&... /* unused */)
-{
-}
-
 using namespace std;
 
-ByteStream::ByteStream(const size_t capacity)
+ByteStream::ByteStream(const size_t capacity) :
+    m_capacity(capacity), m_deque(), m_error(false), m_if_end(false), m_num_read(0), m_num_write(0)
 {
-    DUMMY_CODE(capacity);
 }
 
 size_t
 ByteStream::write(const string& data)
 {
-    DUMMY_CODE(data);
-    return {};
+    size_t len = min(data.size(), m_capacity - this->buffer_size());
+    size_t i = 0;
+    for (; i < len; i++) {
+        m_deque.push_back(data[i]);
+    }
+    m_num_write += i;
+    return i;
 }
 
 //! \param[in] len bytes will be copied from the output side of the buffer
 string
 ByteStream::peek_output(const size_t len) const
 {
-    DUMMY_CODE(len);
-    return {};
+    string str = "";
+    for (size_t i = 0; i < len && !m_deque.empty(); i++) {
+        str += m_deque.at(this->buffer_size() - len + i);
+    }
+    return str;
 }
 
 //! \param[in] len bytes will be removed from the output side of the buffer
 void
 ByteStream::pop_output(const size_t len)
 {
-    DUMMY_CODE(len);
+    for (size_t i = 0; i < len; i++) {
+        m_deque.pop_front();
+    }
+    m_num_read += len;
+    return;
 }
 
 void
 ByteStream::end_input()
 {
+    m_if_end = true;
+    return;
 }
 
 bool
 ByteStream::input_ended() const
 {
-    return {};
+    return m_if_end;
 }
 
 size_t
 ByteStream::buffer_size() const
 {
-    return {};
+    return m_deque.size();
 }
 
 bool
 ByteStream::buffer_empty() const
 {
-    return {};
+    return m_deque.empty();
 }
 
 bool
 ByteStream::eof() const
 {
-    return false;
+    // 需要无输入并且双端队列内部为空
+    return m_if_end && m_deque.empty();
 }
 
 size_t
 ByteStream::bytes_written() const
 {
-    return {};
+    return m_num_write;
 }
 
 size_t
 ByteStream::bytes_read() const
 {
-    return {};
+    return m_num_read;
 }
 
 size_t
 ByteStream::remaining_capacity() const
 {
-    return {};
+    return m_capacity - m_deque.size();
 }
