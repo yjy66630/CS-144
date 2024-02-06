@@ -4,17 +4,54 @@
 #include "byte_stream.hh"
 
 #include <cstdint>
+#include <functional>
+#include <queue>
+#include <set>
 #include <string>
+#include <vector>
 
 //! \brief A class that assembles a series of excerpts from a byte stream (possibly out of order,
 //! possibly overlapping) into an in-order byte stream.
 class StreamReassembler
 {
-private:
+public:
     // Your code here -- add private members as necessary.
+    class stream
+    {
+    public:
+        stream(std::string str, uint64_t index, bool eof) :
+            m_data(str), m_begin(index), m_len(m_data.size()), m_eof(eof)
+        {
+        }
+        std::string m_data;
+        uint64_t m_begin;
+        uint64_t m_len;
+        bool m_eof;
+    };
+
+private:
+    // streamCmp想用function包裹，但是失败了。。。
+    // std::function<bool(stream, stream)> streamCmp = [](stream a, stream b) {
+    //     return a.m_begin > b.m_begin;
+    // };
+
+    struct streamCmp
+    {
+        bool
+        operator()(stream a, stream b)
+        {
+            return a.m_begin > b.m_begin;
+        }
+    };
 
     ByteStream _output;   //!< The reassembled in-order byte stream
     size_t _capacity;     //!< The maximum number of bytes
+    bool m_eof = false;
+    uint64_t m_reorderedFlag = 0;     // the flag of HAS NOT been reassembled in output byte stream
+    uint64_t m_assembledBytes = 0;    // the number of bytes that have been assembled
+    std::set<char> m_inputSet = {};   // the set of all bytes that have buffered
+    // the queue of stashing unordered byte stream
+    std::priority_queue<stream, std::vector<stream>, streamCmp> m_streamBuffer = {};
 
 public:
     //! \brief Construct a `StreamReassembler` that will store up to `capacity` bytes.
