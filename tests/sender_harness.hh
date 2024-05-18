@@ -237,7 +237,7 @@ struct Tick : public SenderAction
             std::ostringstream ss;
             ss << "after " << _ms
                << "ms passed the TCP Sender reported\n\tconsecutive_retransmissions = "
-               << sender.consecutive_retransmissions() << "\nbut it should have been\n\t";
+               << sender.consecutive_retransmissions() << "\n\tbut it should have been";
             if (max_retx_exceeded.value()) {
                 ss << "greater than ";
             } else {
