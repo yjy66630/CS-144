@@ -66,7 +66,7 @@ main()
                 test.execute(ExpectBytesInFlight{block_size});
                 test.execute(ExpectSegment{}
                                  .with_seqno(isn + 1 + uint32_t(bytes_sent - block_size))
-                                 .with_data(move(data)));
+                                 .with_data(std::move(data)));
                 test.execute(ExpectNoSegment{});
                 test.execute(AckReceived{WrappingInt32{isn + 1 + uint32_t(bytes_sent)}});
             }
@@ -99,7 +99,7 @@ main()
                 test.execute(ExpectBytesInFlight{bytes_sent});
                 test.execute(ExpectSegment{}
                                  .with_seqno(isn + 1 + uint32_t(bytes_sent - block_size))
-                                 .with_data(move(data)));
+                                 .with_data(std::move(data)));
                 test.execute(ExpectNoSegment{});
             }
             test.execute(ExpectBytesInFlight{bytes_sent});

@@ -6,6 +6,8 @@
 #include "tcp_segment.hh"
 #include "wrapping_integers.hh"
 
+#include <cstddef>
+#include <cstdint>
 #include <functional>
 #include <queue>
 
@@ -32,6 +34,36 @@ private:
 
     //! the (absolute) sequence number for the next byte to be sent
     uint64_t _next_seqno{0};
+
+    //! 已经发送但是还没有收到ACK的报文
+    std::queue<TCPSegment> _segments_outgoing{};
+
+    //! 已发送但尚未收到ACK的报文占用的序列号数目
+    size_t _bytes_in_flight = 0;
+
+    //! 是否已经发送SYN
+    bool _syn_flag = false;
+
+    //! 是否已经发送FIN
+    bool _fin_flag = false;
+
+    //! 已经收到的序列号，小于该序列号的报文不应当再发送
+    size_t _received_seqno = 0;
+
+    //! 接受端的窗口大小，应由 `ack_received` 函数改变
+    uint64_t _window_size = 0;
+
+    //! 重传次数
+    unsigned int _consecutive_retransmissions = 0;
+
+    //! 内部时钟
+    uint64_t _time = 0;
+
+    //! 超时重传时间
+    uint64_t _retransmission_timeout = 0;
+
+    //! 设置报文序列号，并且推入发送队列
+    void make_segment_and_send(TCPSegment);
 
 public:
     //! Initialize a TCPSender

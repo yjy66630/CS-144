@@ -61,6 +61,10 @@ public:
     //! Remove bytes from the buffer
     void pop_output(const size_t len);
 
+    std::string peek_back_output(const size_t len) const;
+
+    void pop_back_output(const size_t len);
+
     //! Read (i.e., copy and then pop) the next "len" bytes of the stream
     //! \returns a vector of bytes read
     std::string

@@ -50,6 +50,27 @@ ByteStream::pop_output(const size_t len)
     return;
 }
 
+string
+ByteStream::peek_back_output(const size_t len) const
+{
+    string str = "";
+    for (size_t i = 0; i < len && !m_deque.empty(); i++) {
+        str += m_deque.at(i);
+    }
+    return str;
+}
+
+//! \param[in] len bytes will be removed from the output side of the buffer
+void
+ByteStream::pop_back_output(const size_t len)
+{
+    for (size_t i = 0; i < len; i++) {
+        m_deque.pop_back();
+    }
+    m_num_read += len;
+    return;
+}
+
 void
 ByteStream::end_input()
 {
