@@ -284,7 +284,8 @@ TCPTestHarness::in_close_wait(const TCPConfig& cfg, const WrappingInt32 tx_isn,
 
 //! \brief Create an FSM in LAST_ACK
 //! \details SYNs have been traded, then the machine received and ACK'd FIN, and then it sent its
-//! own FIN. \param[in] tx_isn is the ISN of the FSM's outbound sequence. i.e. the
+//! own FIN.
+//! \param[in] tx_isn is the ISN of the FSM's outbound sequence. i.e. the
 //!            seqno for the SYN.
 //! \param[in] rx_isn is the ISN of the FSM's inbound sequence. i.e. the
 //!            seqno for the SYN.

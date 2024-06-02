@@ -44,7 +44,7 @@ FileDescriptor::FileDescriptor(const int fd) : _internal_fd(make_shared<FDWrappe
 
 //! Private constructor used by duplicate()
 FileDescriptor::FileDescriptor(shared_ptr<FDWrapper> other_shared_ptr) :
-    _internal_fd(std::move(other_shared_ptr))
+    _internal_fd(move(other_shared_ptr))
 {
 }
 
@@ -64,6 +64,7 @@ FileDescriptor::read(std::string& str, const size_t limit)
     const size_t size_to_read = min(BUFFER_SIZE, limit);
     str.resize(size_to_read);
 
+    // in c++17, str.data() has overload that return non-const reference
     ssize_t bytes_read = SystemCall("read", ::read(fd_num(), str.data(), size_to_read));
     if (limit > 0 && bytes_read == 0) {
         _internal_fd->_eof = true;

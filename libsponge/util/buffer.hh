@@ -12,23 +12,20 @@
 #include <vector>
 
 //! \brief A reference-counted read-only string that can discard bytes from the front
-class Buffer
-{
-private:
+class Buffer {
+  private:
     std::shared_ptr<std::string> _storage{};
     size_t _starting_offset{};
 
-public:
+  public:
     Buffer() = default;
 
     //! \brief Construct by taking ownership of a string
-    Buffer(std::string&& str) noexcept : _storage(std::make_shared<std::string>(std::move(str))) {}
+    Buffer(std::string &&str) noexcept : _storage(std::make_shared<std::string>(std::move(str))) {}
 
     //! \name Expose contents as a std::string_view
     //!@{
-    std::string_view
-    str() const
-    {
+    std::string_view str() const {
         if (not _storage) {
             return {};
         }
@@ -39,29 +36,16 @@ public:
     //!@}
 
     //! \brief Get character at location `n`
-    uint8_t
-    at(const size_t n) const
-    {
-        return str().at(n);
-    }
+    uint8_t at(const size_t n) const { return str().at(n); }
 
     //! \brief Size of the string
-    size_t
-    size() const
-    {
-        return str().size();
-    }
+    size_t size() const { return str().size(); }
 
     //! \brief Make a copy to a new std::string
-    std::string
-    copy() const
-    {
-        return std::string(str());
-    }
+    std::string copy() const { return std::string(str()); }
 
     //! \brief Discard the first `n` bytes of the string (does not require a copy or move)
-    //! \note Doesn't free any memory until the whole string has been discarded in all copies of the
-    //! Buffer.
+    //! \note Doesn't free any memory until the whole string has been discarded in all copies of the Buffer.
     void remove_prefix(const size_t n);
 };
 
@@ -70,12 +54,11 @@ public:
 //! + a payload. This allows us to prepend headers (e.g., to
 //! encapsulate a TCP payload in a TCPSegment, and then encapsulate
 //! the TCPSegment in an IPv4Datagram) without copying the payload.
-class BufferList
-{
-private:
+class BufferList {
+  private:
     std::deque<Buffer> _buffers{};
 
-public:
+  public:
     //! \name Constructors
     //!@{
 
@@ -85,22 +68,17 @@ public:
     BufferList(Buffer buffer) : _buffers{buffer} {}
 
     //! \brief Construct by taking ownership of a std::string
-    BufferList(std::string&& str) noexcept
-    {
+    BufferList(std::string &&str) noexcept {
         Buffer buf{std::move(str)};
         append(buf);
     }
     //!@}
 
     //! \brief Access the underlying queue of Buffers
-    const std::deque<Buffer>&
-    buffers() const
-    {
-        return _buffers;
-    }
+    const std::deque<Buffer> &buffers() const { return _buffers; }
 
     //! \brief Append a BufferList
-    void append(const BufferList& other);
+    void append(const BufferList &other);
 
     //! \brief Transform to a Buffer
     //! \note Throws an exception unless BufferList is contiguous
@@ -114,31 +92,30 @@ public:
 
     //! \brief Make a copy to a new std::string
     std::string concatenate() const;
+
+    //! \brief Make a copy to a new std::string with the first n chars
+    std::string concatenate(size_t n) const;
 };
 
 //! \brief A non-owning temporary view (similar to std::string_view) of a discontiguous string
-class BufferViewList
-{
+class BufferViewList {
     std::deque<std::string_view> _views{};
 
-public:
+  public:
     //! \name Constructors
     //!@{
 
     //! \brief Construct from a std::string
-    BufferViewList(const std::string& str) : BufferViewList(std::string_view(str)) {}
+    BufferViewList(const std::string &str) : BufferViewList(std::string_view(str)) {}
 
     //! \brief Construct from a C string (must be NULL-terminated)
-    BufferViewList(const char* s) : BufferViewList(std::string_view(s)) {}
+    BufferViewList(const char *s) : BufferViewList(std::string_view(s)) {}
 
     //! \brief Construct from a BufferList
-    BufferViewList(const BufferList& buffers);
+    BufferViewList(const BufferList &buffers);
 
     //! \brief Construct from a std::string_view
-    BufferViewList(std::string_view str)
-    {
-        _views.push_back({const_cast<char*>(str.data()), str.size()});
-    }
+    BufferViewList(std::string_view str) { _views.push_back({const_cast<char *>(str.data()), str.size()}); }
     //!@}
 
     //! \brief Discard the first `n` bytes of the string (does not require a copy or move)
@@ -153,4 +130,4 @@ public:
     std::vector<iovec> as_iovecs() const;
 };
 
-#endif   // SPONGE_LIBSPONGE_BUFFER_HH
+#endif  // SPONGE_LIBSPONGE_BUFFER_HH
