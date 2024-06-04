@@ -1,69 +1,80 @@
 #include "tcp_receiver.hh"
-#include "wrapping_integers.hh"
-#include <cstddef>
-#include <cstdint>
-#include <unistd.h>
 
 using namespace std;
 
 bool
 TCPReceiver::segment_received(const TCPSegment& seg)
 {
-    uint64_t abs_seqno = 0;
+    const bool old_syn_received = _syn_received, old_fin_received = _fin_received;
+
+    // 收到一个分组，但不是SYN，以前也没有收到过SYN
+    if (!seg.header().syn && !_syn_received) {
+        return false;
+    }
+    if (_reassembler.eof() && seg.header().fin) {
+        return false;
+    }
+
     if (seg.header().syn) {
-        if (_syn_flag) {   // 以前已经收到SYN，应该丢掉此分组
+        if (_syn_received) {   // 以前已经收到SYN，应该丢掉此分组
             return false;
         }
-        _syn_flag = true;   // 已经收到SYN
-
-        _ack.emplace(seg.header().seqno + 1);
         _isn = seg.header().seqno;
-    } else if (!_syn_flag) {
-        return false;   // 还没收到SYN，但是已经收到ACK等分组
+        _syn_received = true;   // 已经收到SYN
     }
+
+    uint64_t win_start = unwrap(_ackno, _isn, _checkpoint);
+    uint64_t win_size = window_size() ? window_size() : 1;
+    uint64_t win_end = win_start + win_size - 1;
 
     // TCP随机生成的相对序列号（32位）转换为绝对序列号（64位）
-    abs_seqno = unwrap(seg.header().seqno, _isn, abs_seqno);
+    uint64_t abs_seqno = unwrap(seg.header().seqno, _isn, _checkpoint);
+    uint64_t abs_seqno_size = seg.length_in_sequence_space();
+    abs_seqno_size = (abs_seqno_size) ? abs_seqno_size : 1;
+    uint64_t abs_seqno_end = abs_seqno + abs_seqno_size - 1;
 
-    // 判断接受窗口是否足够大
-    if (seg.payload().size() > 0) {
-        if (
-            // 新到来的分组由于某种原因序列号大于接受窗口，-1是因为收到SYN分组
-            static_cast<int64_t>(abs_seqno - _reassembler.assembled_bytes() - 1) >=
-                static_cast<int64_t>(window_size())
-            // 拒绝接受旧片段
-            || abs_seqno + seg.payload().size() - 1 <= _reassembler.assembled_bytes()) {
-            return false;
+    bool inbound = (abs_seqno >= win_start && abs_seqno <= win_end)   // 整个都在窗口中
+                   ||
+                   (abs_seqno_end >= win_start && abs_seqno_end <= win_end);   // 后半部分进入窗口
+
+    if (inbound) {
+        _reassembler.push_substring(
+            seg.payload().copy(), abs_seqno - 1, seg.header().fin);   // 忽视syn，所以减1
+        _checkpoint = _reassembler.first_unassembled_byte();
+    }
+
+    if (seg.header().fin && !_fin_received) {
+        _fin_received = true;
+        // if flags = SF and payload_size = 0, we need to end_input() the stream manually
+        if (seg.header().syn && seg.length_in_sequence_space() == 2) {
+            stream_out().end_input();
         }
     }
 
-    // 收到数据分组
-    if (seg.payload().size() > 0) {
-        _reassembler.push_substring(seg.payload().copy(), abs_seqno - 1, seg.header().fin);
-        // +1是因为当收到数据分组时，说明之前必定已经收到SYN分组
-        _ack.emplace(wrap(_reassembler.stream_out().bytes_written() + 1, _isn));
-    }
+    _ackno = wrap(_reassembler.first_unassembled_byte() + 1 +
+                      (_fin_received && (_reassembler.unassembled_bytes() == 0)),
+                  _isn);   //+1因为bytestream不给syn标号
 
-    if (seg.header().fin) {
-        if (_fin_flag) {
-            return false;
-        }
-        _fin_flag = true;
-
-        _ack.emplace(_ack.value() + 1);
-        _reassembler.stream_out().end_input();
+    // second syn or fin will be rejected
+    if (inbound || (seg.header().fin && !old_fin_received) ||
+        (seg.header().syn && !old_syn_received)) {
+        return true;
     }
-    return true;
+    return false;
 }
 
 optional<WrappingInt32>
 TCPReceiver::ackno() const
 {
-    return _ack;
+    if (!_syn_received) {
+        return nullopt;
+    } else {
+        return {_ackno};
+    }
 }
 
 size_t
 TCPReceiver::window_size() const
 {
-    return _capacity - _reassembler.stream_out().buffer_size();
+    return stream_out().remaining_capacity();
 }

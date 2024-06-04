@@ -6,10 +6,13 @@
 #include "tcp_segment.hh"
 #include "wrapping_integers.hh"
 
-#include <cstddef>
-#include <cstdint>
-#include <functional>
 #include <queue>
+
+enum class TcpState
+{
+    running,
+    stop
+};
 
 //! \brief The "sender" part of a TCP implementation.
 
@@ -24,52 +27,58 @@ private:
     WrappingInt32 _isn;
 
     //! outbound queue of segments that the TCPSender wants sent
-    std::queue<TCPSegment> _segments_out{};
+    std::queue<TCPSegment> _segments_out;
 
-    //! retransmission timer for the connection
-    unsigned int _initial_retransmission_timeout;
+    //! outstanding segments that the TCPSender may resend
+    std::queue<TCPSegment> _segments_outgoing;
+
+    //! bytes in flight
+    uint64_t _bytes_in_flight;
+
+    // ！ last ackno
+    uint64_t _recv_ackno;
+
+    //! notify the window size
+    uint16_t _window_size;
 
     //! outgoing stream of bytes that have not yet been sent
     ByteStream _stream;
 
     //! the (absolute) sequence number for the next byte to be sent
-    uint64_t _next_seqno{0};
+    uint64_t _next_seqno;
 
-    //! 已经发送但是还没有收到ACK的报文
-    std::queue<TCPSegment> _segments_outgoing{};
+    //! the flag of SYN sent
+    bool _syn_flag;
 
-    //! 已发送但尚未收到ACK的报文占用的序列号数目
-    size_t _bytes_in_flight = 0;
+    //! 用于记录 SYN 是否第二次发送
+    bool _old_syn_flag;
 
-    //! 是否已经发送SYN
-    bool _syn_flag = false;
+    //! the flag of FIN sent
+    bool _fin_sent;
 
-    //! 是否已经发送FIN
-    bool _fin_flag = false;
-
-    //! 已经收到的序列号，小于该序列号的报文不应当再发送
-    size_t _received_seqno = 0;
-
-    //! 接受端的窗口大小，应由 `ack_received` 函数改变
-    uint64_t _window_size = 0;
+    //! retransmission timer for the connection
+    unsigned int _initial_retransmission_timeout;
 
     //! 重传次数
-    unsigned int _consecutive_retransmissions = 0;
+    unsigned int _consecutive_retransmissions;
+
+    //! 连接状态（是否正在运行）
+    TcpState state{TcpState::stop};
 
     //! 内部时钟
-    uint64_t _time = 0;
+    uint64_t _time;
 
     //! 超时重传时间
-    uint64_t _retransmission_timeout = 0;
+    uint64_t _retransmission_timeout;
 
     //! 设置报文序列号，并且推入发送队列
-    void make_segment_and_send(TCPSegment);
+    void make_segment_and_send(TCPSegment seg);
 
 public:
     //! Initialize a TCPSender
-    TCPSender(const size_t capacity = TCPConfig::DEFAULT_CAPACITY,
-              const uint16_t retx_timeout = TCPConfig::TIMEOUT_DFLT,
-              const std::optional<WrappingInt32> fixed_isn = {});
+    explicit TCPSender(size_t capacity = TCPConfig::DEFAULT_CAPACITY,
+                       uint16_t retx_timeout = TCPConfig::TIMEOUT_DFLT,
+                       std::optional<WrappingInt32> fixed_isn = {});
 
     //! \name "Input" interface for the writer
     //!@{
@@ -89,7 +98,7 @@ public:
     //!@{
 
     //! \brief A new acknowledgment was received
-    bool ack_received(const WrappingInt32 ackno, const uint16_t window_size);
+    bool ack_received(WrappingInt32 ackno, uint16_t window_size);
 
     //! \brief Generate an empty-payload segment (useful for creating empty ACK segments)
     void send_empty_segment();
@@ -98,7 +107,7 @@ public:
     void fill_window();
 
     //! \brief Notifies the TCPSender of the passage of time
-    void tick(const size_t ms_since_last_tick);
+    void tick(size_t ms_since_last_tick);
     //!@}
 
     //! \name Accessors
@@ -140,6 +149,18 @@ public:
         return wrap(_next_seqno, _isn);
     }
     //!@}
+
+    bool
+    syn_sent() const
+    {
+        return _syn_flag;
+    }
+
+    bool
+    fin_sent() const
+    {
+        return _fin_sent;
+    }
 };
 
 #endif   // SPONGE_LIBSPONGE_TCP_SENDER_HH

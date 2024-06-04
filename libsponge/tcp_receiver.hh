@@ -6,7 +6,6 @@
 #include "tcp_segment.hh"
 #include "wrapping_integers.hh"
 
-#include <cstdint>
 #include <optional>
 
 //! \brief The "receiver" part of a TCP implementation.
@@ -14,32 +13,22 @@
 //! Receives and reassembles segments into a ByteStream, and computes
 //! the acknowledgment number and window size to advertise back to the
 //! remote TCPSender.
-class TCPReceiver
-{
+class TCPReceiver {
     //! Our data structure for re-assembling bytes.
     StreamReassembler _reassembler;
-
-    //! The maximum number of bytes we'll store.
-    size_t _capacity;
-
-    //! the ack sequence number
-    std::optional<WrappingInt32> _ack = std::nullopt;
-
-    //! if have recieved syn flag before
-    bool _syn_flag = false;
-
-    //! if have recieved fin flag before
-    bool _fin_flag = false;
-
-    //! the ISN field of TCP packet (should be uint32)
+    bool _syn_received;
+    bool _fin_received;
     WrappingInt32 _isn;
+    WrappingInt32 _ackno;
+    uint64_t _checkpoint;
 
-public:
+  public:
     //! \brief Construct a TCP receiver
     //!
     //! \param capacity the maximum number of bytes that the receiver will
     //!                 store in its buffers at any give time.
-    TCPReceiver(const size_t capacity) : _reassembler(capacity), _capacity(capacity), _isn(0) {}
+    TCPReceiver(const size_t capacity)
+        : _reassembler(capacity), _syn_received(0), _fin_received(0), _isn(0), _ackno(0), _checkpoint(0) {}
 
     //! \name Accessors to provide feedback to the remote TCPSender
     //!@{
@@ -65,29 +54,17 @@ public:
     //!@}
 
     //! \brief number of bytes stored but not yet reassembled
-    size_t
-    unassembled_bytes() const
-    {
-        return _reassembler.unassembled_bytes();
-    }
+    size_t unassembled_bytes() const { return _reassembler.unassembled_bytes(); }
 
     //! \brief handle an inbound segment
     //! \returns `true` if any part of the segment was inside the window
-    bool segment_received(const TCPSegment& seg);
+    bool segment_received(const TCPSegment &seg);
 
     //! \name "Output" interface for the reader
     //!@{
-    ByteStream&
-    stream_out()
-    {
-        return _reassembler.stream_out();
-    }
-    const ByteStream&
-    stream_out() const
-    {
-        return _reassembler.stream_out();
-    }
+    ByteStream &stream_out() { return _reassembler.stream_out(); }
+    const ByteStream &stream_out() const { return _reassembler.stream_out(); }
     //!@}
 };
 
-#endif   // SPONGE_LIBSPONGE_TCP_RECEIVER_HH
+#endif  // SPONGE_LIBSPONGE_TCP_RECEIVER_HH

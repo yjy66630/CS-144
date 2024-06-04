@@ -1,122 +1,88 @@
 #include "byte_stream.hh"
-#include <cstddef>
-#include <string>
 
-// Dummy implementation of a flow-controlled in-memory byte stream.
-
-// For Lab 0, please replace with a real implementation that passes the
-// automated checks run by `make check_lab0`.
-
-// You will need to add private members to the class declaration in `byte_stream.hh`
+#include <algorithm>
 
 using namespace std;
 
 ByteStream::ByteStream(const size_t capacity) :
-    m_capacity(capacity), m_deque(), m_error(false), m_if_end(false), m_num_read(0), m_num_write(0)
+    _size(0), _capacity(capacity), _num_write(0), _num_read(0), _if_end(false)
 {
 }
 
 size_t
 ByteStream::write(const string& data)
 {
-    size_t len = min(data.size(), m_capacity - this->buffer_size());
-    size_t i = 0;
-    for (; i < len; i++) {
-        m_deque.push_back(data[i]);
-    }
-    m_num_write += i;
-    return i;
+    // 如果超出容量限制，直接截取字符串
+    size_t l = min(data.size(), _capacity - _size);
+    std::string tmp = data.substr(0, l);
+    _stream_buffer.append(BufferList(std::move(tmp)));
+    _size += l;
+    _num_write += l;
+    return l;
 }
 
 //! \param[in] len bytes will be copied from the output side of the buffer
 string
 ByteStream::peek_output(const size_t len) const
 {
-    string str = "";
-    for (size_t i = 0; i < len && !m_deque.empty(); i++) {
-        str += m_deque.at(this->buffer_size() - len + i);
-    }
-    return str;
+    return _stream_buffer.concatenate(std::move(min(len, _size)));
 }
 
 //! \param[in] len bytes will be removed from the output side of the buffer
 void
 ByteStream::pop_output(const size_t len)
 {
-    for (size_t i = 0; i < len; i++) {
-        m_deque.pop_front();
-    }
-    m_num_read += len;
-    return;
-}
-
-string
-ByteStream::peek_back_output(const size_t len) const
-{
-    string str = "";
-    for (size_t i = 0; i < len && !m_deque.empty(); i++) {
-        str += m_deque.at(i);
-    }
-    return str;
-}
-
-//! \param[in] len bytes will be removed from the output side of the buffer
-void
-ByteStream::pop_back_output(const size_t len)
-{
-    for (size_t i = 0; i < len; i++) {
-        m_deque.pop_back();
-    }
-    m_num_read += len;
-    return;
+    size_t l = min(len, _size);
+    _stream_buffer.remove_prefix(l);
+    _size -= l;
+    _num_read += l;
 }
 
 void
 ByteStream::end_input()
 {
-    m_if_end = true;
-    return;
+    _if_end = true;
 }
 
 bool
 ByteStream::input_ended() const
 {
-    return m_if_end;
+    return _if_end;
 }
 
 size_t
 ByteStream::buffer_size() const
 {
-    return m_deque.size();
+    return _size;
 }
 
 bool
 ByteStream::buffer_empty() const
 {
-    return m_deque.empty();
+    return _size == 0;
 }
 
 bool
 ByteStream::eof() const
 {
     // 需要无输入并且双端队列内部为空
-    return m_if_end && m_deque.empty();
+    return _if_end && (_size == 0);
 }
 
 size_t
 ByteStream::bytes_written() const
 {
-    return m_num_write;
+    return _num_write;
 }
 
 size_t
 ByteStream::bytes_read() const
 {
-    return m_num_read;
+    return _num_read;
 }
 
 size_t
 ByteStream::remaining_capacity() const
 {
-    return m_capacity - m_deque.size();
+    return _capacity - _size;
 }

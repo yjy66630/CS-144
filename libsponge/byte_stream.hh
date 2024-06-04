@@ -1,13 +1,10 @@
 #ifndef SPONGE_LIBSPONGE_BYTE_STREAM_HH
 #define SPONGE_LIBSPONGE_BYTE_STREAM_HH
 
+#include "buffer.hh"
+
 #include <cstddef>
-#include <cstdint>
-#include <deque>
-#include <list>
-#include <queue>
 #include <string>
-#include <utility>
 
 //! \brief An in-order byte stream.
 
@@ -18,12 +15,13 @@ class ByteStream
 {
 private:
     // Your code here -- add private members as necessary.
-    size_t m_capacity;
-    std::deque<char> m_deque;
-    bool m_error{};       //!< Flag indicating that the stream suffered an error.
-    bool m_if_end;        // the flag indicating that if the stream input has ended
-    size_t m_num_read;    // the number of total read
-    size_t m_num_write;   // the number of total write
+    BufferList _stream_buffer{};
+    size_t _size;
+    size_t _capacity;
+    size_t _num_write;
+    size_t _num_read;
+    bool _if_end;
+    bool _error{};   //!< Flag indicating that the stream suffered an error.
 
 public:
     //! Construct a stream with room for `capacity` bytes.
@@ -47,7 +45,7 @@ public:
     void
     set_error()
     {
-        m_error = true;
+        _error = true;
     }
     //!@}
 
@@ -60,10 +58,6 @@ public:
 
     //! Remove bytes from the buffer
     void pop_output(const size_t len);
-
-    std::string peek_back_output(const size_t len) const;
-
-    void pop_back_output(const size_t len);
 
     //! Read (i.e., copy and then pop) the next "len" bytes of the stream
     //! \returns a vector of bytes read
@@ -82,7 +76,7 @@ public:
     bool
     error() const
     {
-        return m_error;
+        return _error;
     }
 
     //! \returns the maximum amount that can currently be read from the stream

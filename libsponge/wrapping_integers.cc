@@ -26,8 +26,18 @@ wrap(uint64_t n, WrappingInt32 isn)
 uint64_t
 unwrap(WrappingInt32 n, WrappingInt32 isn, uint64_t checkpoint)
 {
-    uint32_t offset = n.raw_value() - wrap(checkpoint, isn).raw_value();
-    uint64_t result = checkpoint + offset;
-    if (offset > (1u << 31) && result >= (1ul << 32)) result -= (1ul << 32);
-    return result;
+    // 需要寻找离 checkpoint 最近的64位序列号
+    // change the checkpoint to a seqno
+    uint32_t offset = n - isn;   // 当前字节的偏移量
+    if (!(checkpoint & 0xFFFFFFFF) && checkpoint <= offset) {
+        return offset;
+    }
+    // find the closest offset t checkpoint
+    uint64_t overflow_part = (checkpoint - offset) >> 32;
+    uint64_t left = offset + overflow_part * (1ul << 32);
+    uint64_t right = left + (1ul << 32);
+    if (checkpoint - left < right - checkpoint) {
+        return left;
+    }
+    return right;
 }
