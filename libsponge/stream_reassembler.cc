@@ -50,7 +50,7 @@ StreamReassembler::push_substring(const std::string& data, const size_t index, c
     std::string resData(data.begin() + beginIndex, data.begin() + endIndex);
     //           | resData |
     //        <---|iter|
-    auto iter = _unassembled.lower_bound(typeUnassembled(resIndex, ""));
+    auto iter = _unassembled.lower_bound(typeUnassembled(resIndex, std::move("")));
     // 可能出现如下情况，因此需要用 while
     // 后面的大量数据因乱序到达这里，需要用 set 保存起来
     while (iter != _unassembled.begin()) {
@@ -76,7 +76,7 @@ StreamReassembler::push_substring(const std::string& data, const size_t index, c
 
     //         ｜resData |
     //          | iter ... | --->
-    iter = _unassembled.lower_bound(typeUnassembled(resIndex, ""));
+    iter = _unassembled.lower_bound(typeUnassembled(resIndex, std::move("")));
     // 集合中即使序号最小的元素也比当前元素 data 的序号要大
     // 向后遍历，看哪些字符串能被合并
     while (iter != _unassembled.end()) {

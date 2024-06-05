@@ -10,10 +10,9 @@ using namespace std;
 //! \param[in] retx_timeout the initial amount of time to wait before retransmitting the oldest
 //! outstanding segment \param[in] fixed_isn the Initial Sequence Number to use, if set (otherwise
 //! uses a random ISN)
-TCPSender::
-TCPSender(const size_t capacity, const uint16_t retx_timeout,
-          const std::optional<WrappingInt32> fixed_isn) :
-    _isn(fixed_isn.value_or(WrappingInt32{random_device()()})),
+TCPSender::TCPSender(const size_t capacity, const uint16_t retx_timeout,
+                     const std::optional<WrappingInt32> fixed_isn) :
+    _isn(fixed_isn.value_or(std::move(WrappingInt32{random_device()()}))),
     _segments_out{},
     _segments_outgoing{},
     _bytes_in_flight(0),
@@ -84,7 +83,7 @@ TCPSender::fill_window()
 //! \returns `false` if the ackno appears invalid (acknowledges something the TCPSender hasn't sent
 //! yet)
 bool
-TCPSender::ack_received(const WrappingInt32 ackno, const uint16_t window_size)
+TCPSender::ack_received(const WrappingInt32& ackno, const uint16_t& window_size)
 {
     uint64_t abs_ackno = unwrap(ackno, _isn, _next_seqno);
     if (abs_ackno > _next_seqno) {
@@ -166,7 +165,7 @@ TCPSender::send_empty_segment()
 }
 
 void
-TCPSender::make_segment_and_send(TCPSegment seg)
+TCPSender::make_segment_and_send(TCPSegment& seg)
 {
     WrappingInt32 segno = wrap(_next_seqno, _isn);
     seg.header().seqno = segno;

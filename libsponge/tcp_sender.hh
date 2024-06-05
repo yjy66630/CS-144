@@ -72,7 +72,7 @@ private:
     uint64_t _retransmission_timeout;
 
     //! 设置报文序列号，并且推入发送队列
-    void make_segment_and_send(TCPSegment seg);
+    void make_segment_and_send(TCPSegment& seg);
 
 public:
     //! Initialize a TCPSender
@@ -98,7 +98,7 @@ public:
     //!@{
 
     //! \brief A new acknowledgment was received
-    bool ack_received(WrappingInt32 ackno, uint16_t window_size);
+    bool ack_received(const WrappingInt32& ackno, const uint16_t& window_size);
 
     //! \brief Generate an empty-payload segment (useful for creating empty ACK segments)
     void send_empty_segment();
