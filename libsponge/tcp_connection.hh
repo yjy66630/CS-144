@@ -22,6 +22,20 @@ private:
     //! in case the remote TCPConnection doesn't know we've received its whole stream?
     bool _linger_after_streams_finish{true};
 
+    //! the flag to indicate whether it is alive
+    bool _if_active{true};
+
+    //! the time interval since last segment received.
+    size_t _time_since_last_segment_received{};
+
+    //! \brief the helper function for setting the sending segments'
+    //! acknowledge number and window size
+    void set_ack_and_window(TCPSegment& seg);
+
+    void send_segment(const TCPSegment& segment);
+
+    void send_reset_segment();
+
 public:
     //! \name "Input" interface for the writer
     //!@{
@@ -94,7 +108,11 @@ public:
     //!@}
 
     //! Construct a new connection from a configuration
-    explicit TCPConnection(const TCPConfig& cfg) : _cfg{cfg} {}
+    explicit
+    TCPConnection(const TCPConfig& cfg) :
+        _cfg{cfg}
+    {
+    }
 
     //! \name construction and destruction
     //! moving is allowed; copying is disallowed; default construction not possible

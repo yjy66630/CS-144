@@ -157,6 +157,12 @@ public:
     }
 
     bool
+    get_old_syn() const
+    {
+        return _old_syn_flag;
+    }
+
+    bool
     fin_sent() const
     {
         return _fin_sent;
