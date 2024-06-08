@@ -116,7 +116,7 @@ TCPConnection::segment_received(const TCPSegment& seg)
             }
         } else {
             // 根据测试用例：fsm_ack_rst_relaxed: ack/rst in SYN_SENT
-            if(!_sender.get_old_syn()){
+            if (!_sender.get_old_syn()) {
                 return;
             }
             // 根据测试用例：fsm_ack_rst_relaxed: ack in the future -> sent ack back
@@ -260,8 +260,7 @@ TCPConnection::connect()
     }
 }
 
-TCPConnection::~
-TCPConnection()
+TCPConnection::~TCPConnection()
 {
     try {
         if (active()) {
