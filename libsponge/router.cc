@@ -22,11 +22,14 @@ DUMMY_CODE(Targs&&... /* unused */)
 }
 
 //! \param[in] route_prefix The "up-to-32-bit" IPv4 address prefix to match the datagram's
-//! destination address against \param[in] prefix_length For this route to be applicable, how many
+//! destination address against
+//! \param[in] prefix_length For this route to be applicable, how many
 //! high-order (most-significant) bits of the route_prefix will need to match the corresponding bits
-//! of the datagram's destination address? \param[in] next_hop The IP address of the next hop. Will
+//! of the datagram's destination address?
+//! \param[in] next_hop The IP address of the next hop. Will
 //! be empty if the network is directly attached to the router (in which case, the next hop address
-//! should be the datagram's final destination). \param[in] interface_num The index of the interface
+//! should be the datagram's final destination).
+//! \param[in] interface_num The index of the interface
 //! to send the datagram out on.
 void
 Router::add_route(const uint32_t route_prefix, const uint8_t prefix_length,
@@ -35,17 +38,49 @@ Router::add_route(const uint32_t route_prefix, const uint8_t prefix_length,
     cerr << "DEBUG: adding route " << Address::from_ipv4_numeric(route_prefix).ip() << "/"
          << int(prefix_length) << " => " << (next_hop.has_value() ? next_hop->ip() : "(direct)")
          << " on interface " << interface_num << "\n";
-
-    DUMMY_CODE(route_prefix, prefix_length, next_hop, interface_num);
-    // Your code here.
+    _route_table.push_back({route_prefix, prefix_length, next_hop, interface_num});
 }
 
 //! \param[in] dgram The datagram to be routed
 void
 Router::route_one_datagram(InternetDatagram& dgram)
 {
-    DUMMY_CODE(dgram);
-    // Your code here.
+    if (dgram.header().ttl > 0) {
+        dgram.header().ttl--;
+    }
+    if (dgram.header().ttl == 0) {
+        return;
+    }
+    if (_route_table.size() == 0) {
+        return;
+    }
+
+    auto best_route = *_route_table.begin();
+    // 最长前缀
+    int max_prefix_mask = 0;
+    // 是否找到路由
+    bool if_find_route = false;
+
+    for (auto route_iter : _route_table) {
+        int mask = ~((1 << (32 - route_iter.prefix_length)) - 1);
+        if ((route_iter.prefix_length == 0) || ((dgram.header().dst & mask) == route_iter.dst)) {
+            if_find_route = true;
+            if (route_iter.prefix_length > max_prefix_mask) {
+                max_prefix_mask = route_iter.prefix_length;
+                best_route = route_iter;
+            }
+        }
+    }
+
+    if (if_find_route) {
+        Address next_hop;
+        if (best_route.next_hop.has_value()) {
+            next_hop = best_route.next_hop.value();
+        } else {
+            next_hop = Address::from_ipv4_numeric(dgram.header().dst);
+        }
+        interface(best_route.interface_num).send_datagram(dgram, next_hop);
+    }
 }
 
 void
